@@ -8,12 +8,17 @@
 		<Parameter>
 			<Name>PopulationSize</Name>
 			<Description><info><![CDATA[Population Size]]></info></Description>
-			<Value>1300</Value>
+			<Value>600</Value>
 		</Parameter>
 		<Parameter>
 			<Name>LandSize</Name>
 			<Description><info><![CDATA[Size of one side of the grid (<i>i.e.</i>how many agents can fit on one row)]]></info></Description>
-			<Value>40</Value>
+			<Value>51</Value>
+		</Parameter>
+		<Parameter>
+			<Name>CityFile</Name>
+			<Description><info><![CDATA[File containing the city info]]></info></Description>
+			<Value>"mask50px.png"</Value>
 		</Parameter>
 	</Parameter>
 	<Parameter>
@@ -26,7 +31,7 @@
 		<Parameter>
 			<Name>NeighbourhoodRadius</Name>
 			<Description><info><![CDATA[Distance at which neighbours are considered]]></info></Description>
-			<Value>10</Value>
+			<Value>5</Value>
 		</Parameter>
 		<Parameter Scenario="Bubbles">
 			<Name>InfluenceRadius</Name>

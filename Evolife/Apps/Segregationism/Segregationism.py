@@ -34,6 +34,8 @@ Though individual agents show only slight preference for being surrounded by sim
 		# prefers segregation to integration. 
 
 
+from PIL import Image # Loading city maps
+
 import sys
 sys.path.append('..')
 sys.path.append('../../..')
@@ -74,15 +76,19 @@ class Scenario(EPar.Parameters):
 class Individual(EI.Individual):
 	""" Defines individual agents
 	"""
-	def __init__(self, Scenario, ID=None, Newborn=True):
+	def __init__(self, Scenario, ID=None, Newborn=True, location=None):
 		EI.Individual.__init__(self, Scenario, ID=ID, Newborn=Newborn)
-		self.Colour = Scenario.Colours[0]	# just to initialize
 		self.satisfied = False	# if false, the individual will move
-		self.location = None
+		self.location = location # initialize the location
+		self.setColour('black') # initialize with border
 
 	def setColour(self, Colour):	
 		self.Colour = Colour
-		self.moves()	# gets a location
+		if self.location:
+			Land.Modify(self.location, self.Colour) # update color on Land
+			self.display()
+		else:
+			self.moves()
 
 	def locate(self, NewPosition, Erase=True):
 		"""	place individual at a specific location on the ground 
@@ -104,18 +110,21 @@ class Individual(EI.Individual):
 		return not self.satisfaction()
 
 	def satisfaction(self):
+		if self.Colour == 'black':	return True
 		self.satisfied = True	# default
 		if self.location is None:	return False # may happen if there is no room left	
 		Statistics = Land.InspectNeighbourhood(self.location, self.Scenario['NeighbourhoodRadius'])	# Dictionary of colours
 		# print(Statistics, end=' ')
 		Same = Statistics[self.Colour]
-		Different = sum([Statistics[C] for C in self.Scenario.Colours if C != self.Colour])	
+		Different = sum([Statistics[C] for C in self.Scenario.Colours if (C != self.Colour and C != 'black')])	# Ignore borders
 		
 		# vvvvvvvv  To be changed vvvvvvvv
 		# compute satisfaction 
 		# by combining 'Same', 'Different' and self.Scenario.Parameter('Tolerance')
 		# (see the meaning of 'Tolerance' in Starter).
-		self.satisfied = False
+		if (Same + Different):
+			if 100 * Different / (Same + Different) > self.Scenario.Parameter('Tolerance'):
+				self.satisfied = False
 		# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		return self.satisfied
 
@@ -150,9 +159,9 @@ class Group(EG.Group):
 		self.Colour = Colour
 		for member in self.members:	member.setColour(Colour)	# gives colour to all members
 		
-	def createIndividual(self, ID=None, Newborn=True):
+	def createIndividual(self, ID=None, Newborn=True, location=None):
 		# calling local class 'Individual'
-		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn)
+		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn, location=location)
 		# Individual creation may fail if there is no room left
 		# if Indiv.location == None:	return None
 		return Indiv
@@ -167,8 +176,24 @@ class Population(EP.Population):
 		"""
 		EP.Population.__init__(self, Scenario, Observer)
 		self.Colours = self.Scenario.Colours
+		self.Colours.append("black") # black for borders
 		print(self.Colours)
-		for Colour in self.Colours:
+
+		# Populate background with agents that are always happy
+		img = Image.open(Gbl['CityFile']).convert("RGB")
+		pixels = img.load()
+		width, height = img.size
+		created_count = 0
+		for j in range(width):
+			for i in range(height):
+				if pixels[i, j][0] == 0: #pixel is black
+					# All individuals are created in group 0
+					# They are initialized with the first color by default in Individual.__init__
+					if self.groups[1].createIndividual(location = (i, width - j - 1)):
+						created_count += 1
+		print(f"created {created_count} agents on black pixels.")
+
+		for Colour in self.Colours[:-1]:
 			print(f"creating {Colour} agents")
 			# individuals are created with the colour given as ID of their group
 			self.groups[self.Colours.index(Colour)].setColour(Colour)
@@ -221,8 +246,9 @@ if __name__ == "__main__":
 	Pop = Population(Gbl, Observer)   
 	
 	# Observer.recordInfo('Background', 'white')
-	Observer.recordInfo('FieldWallpaper', 'white')
-	Observer.recordInfo('DefaultViews',	[('Field', 400, 340), 'Legend'])	# Evolife should start with these windows open - these sizes are in pixels
+	Observer.recordInfo('FieldWallpaper', Gbl['CityFile']) # Add city for the background
+	Observer.recordInfo('DefaultViews',	['Field', 'Legend'])	# Evolife should start with these windows open - these sizes are in pixels
+
 	
 	# declaration of curves
 	for Col in Gbl.Colours:

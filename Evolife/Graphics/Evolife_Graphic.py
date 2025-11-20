@@ -474,7 +474,7 @@ class Field_window(Satellite_window):
 			self.image_display(image, windowResize=True)	# to resize
 		else:
 			Satellite_window.__init__(self, Ground, control=control, Wtitle=Wtitle, image=None, legend=legend, width=width, height=height, zoom=zoom)
-		self.FreeScale = not self.Area.fitSize	# no physical rescaling has occurred - useful to shrink logical scale to acual data
+		self.FreeScale = True	# no physical rescaling has occurred - useful to shrink logical scale to acual data
 		if self.FreeScale:
 			self.Area.scaleX = 1.0 # virtual coordinates by default
 			self.Area.scaleY = 1.0 # virtual coordinates by default

@@ -500,15 +500,15 @@ class Ground(Draw_Area):
 		self.Toric = False  # says whether right (resp. top) edge
 							# is supposed to touch left (resp. bottom) edge
 		Draw_Area.__init__(self, image=image, legend=legend, width=width, height=height, 
-					EventInterpreter=EventInterpreter, zoom=zoom)
-		self.set_margins(*ZoomL(zoom, 6, 6, 6, 6))
-		#self.Board.fill(QtGui.QColor(QtCore.Qt.white))
+		                    EventInterpreter=EventInterpreter, zoom=zoom)
+		self.set_margins(*ZoomL(zoom, 0, 0, 0, 0))		#self.Board.fill(QtGui.QColor(QtCore.Qt.white))
 		self.Canvas.setPixmap(self.ScaledBoard)
 		self.positions = dict() # positions of agents
 		self.segments = dict()	# line segments pointing out from agents
 		self.shapes = dict()	# shape of agents
 		self.GraphicAgents = dict()	# Q-references of agents 
 		self.KnownShapes = {}
+		self.FreeScale = True	# always allow rescaling
 			
 	def setToric(self, Toric=True):
 		"""	if toric, edges 'touch' each other
