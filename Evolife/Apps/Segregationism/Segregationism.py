@@ -325,9 +325,9 @@ class Population(EP.Population):
 				# Set the price index
 				if pixels[i, j][2] == 255 : # cyan
 					Land.housePrice[i][width - j - 1] = 1
-				if pixels[i, j][0] == 255 : # yellow
+				elif pixels[i, j][0] == 255 : # yellow
 					Land.housePrice[i][width - j - 1] = 2
-				if pixels[i, j][1] == 255: # green
+				elif pixels[i, j][1] == 255: # green
 					Land.housePrice[i][width - j - 1] = 3
 		print(f"created {created_count} agents on black pixels.")
 		border_group.setColourAndBudget('black')
