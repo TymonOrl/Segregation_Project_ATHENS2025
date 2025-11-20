@@ -1,0 +1,2 @@
+Date;Correction;DisplayPeriod;Icon;LandSize;NbColours;NeighbourhoodRadius;NumberOfGroups;PopulationSize;ResultDir;ScenarioName;TimeLimit;Title;Tolerance;LastStep;average_satisfaction_of_red_individuals;average_satisfaction_of_blue_individuals
+251120162048;1;5;settler.jpg;40;2;10;2;1300;./___Results;Segregationism;300000;Evolife_Segregationism;40;13002;90.28;89.79

@@ -1,0 +1,2 @@
+Date;Altitudes;Deposit;DisplayPeriod;Endpoint;Evaporation;Exploration;ForwardDeposit;ForwardThreshold;Ground;Icon;NoStartpoints;Noise;PheromoneAttractiveness;PopulationSize;Saturation;ScenarioName;SlopeAversion;SniffingDistance;Startpoint;TargetAttractiveness;TimeLimit;Title;LastStep;Year_(each_Walker_moves_once_a_year_on_average)
+251117161345;Landscape_1.dat;50;100;95x95;1;10;5;20;Landscape_1.png;Walker.gif;1;1;10;1;500;Path;4;3;5x5;2;30000;Evolife_Walker;7300;49.33
