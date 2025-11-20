@@ -81,14 +81,26 @@ class Landscape:
 		self.Statistics = {}	# will contain lists of cells for each content type
 
 		# Simple initialization of house price in the whole area
+		"""
 		group_sizes = [self.Width//3, self.Width//3, self.Width - 2 * self.Width//3]
 
-		# Pure Python version of housePrice:
 		self.housePrice = (
 			[[1]*self.Width for _ in range(group_sizes[0])] +
 			[[2]*self.Width for _ in range(group_sizes[1])] +
 			[[3]*self.Width for _ in range(group_sizes[2])]
 		)
+		"""
+		# Create housePrice as Width × Height matrix
+		self.housePrice = []
+		for x in range(self.Width):
+			if x < self.Width // 3:
+				price = 1
+			elif x < 2 * self.Width // 3:
+				price = 2
+			else:
+				price = 3
+			self.housePrice.append([price] * self.Height)
+
 
 	def getHousePrice(self, Pos):
 		(x, y) = Pos

@@ -4,7 +4,7 @@ Correction	0
 DisplayPeriod	5
 DotSize	6
 Icon	settler.jpg
-LandSize	40
+LandSize	50
 NbColours	2
 NeighbourhoodRadius	10
 PopulationSize	1300
@@ -16,4 +16,4 @@ ScenarioName	Segregationism
 Target	Segregationism.py
 TimeLimit	300000
 Title	Evolife_Segregationism
-Tolerance	50
+Tolerance	40
