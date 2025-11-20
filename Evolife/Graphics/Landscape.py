@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """ @brief  This class defines a 2D square grid on which agents can move.
 """
 
@@ -85,6 +86,9 @@ class Landscape:
 		self.ContentType = ContentType
 		self.statistics()	# builds lists of cell per content
 	
+	def statiscticsReady(self):
+		self.statistics()
+
 	def Admissible(self, Content):
 		if self.ContentType:	return (Content in self.ContentType)
 		return True
@@ -100,6 +104,7 @@ class Landscape:
 		"""	Changes content at a location 
 		"""
 		# print 'Modyfying', (x,y), NewContent
+		print('Modifying', P, NewContent)
 		(x,y) = P
 		Cell = self.Ground[x][y]
 		if check:	
@@ -130,6 +135,13 @@ class Landscape:
 		(x,y) = P
 		return self.Ground[x][y].free()	# checks whether cell is free
 	
+	def clear(self):
+		for x in range(self.Width):
+			for y in range(self.Height):
+				self.Ground[x][y].clean()
+		self.ActiveCells.clear()
+
+
 	def neighbourhoodLength(self, Radius=1):
 		return (2*Radius+1) ** 2  - 5	# square minus self and four corners
 	
@@ -201,7 +213,7 @@ class Landscape:
 	def activate(self, Pos):
 		"""	Cell located at position 'Pos' has been modified and now produces its effect, possibly on neighbouring cells 
 		"""
-		pass	# to be overloaded	
+		pass	# to be overloAded	
 				
 	def randomPosition(self, Content=None, check=False):
 		"""	picks an element of the grid with 'Content' in it 

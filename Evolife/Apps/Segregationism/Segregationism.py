@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """ @brief  Emergence of segregationism:
 Though individual agents show only slight preference for being surrounded by similar agent, homogeneous patches emerge.
 """
@@ -65,7 +66,8 @@ class Scenario(EPar.Parameters):
 		#############################
 		# Global variables		    #
 		#############################
-		AvailableColours = ['red', 'blue', 'brown', 'yellow', 7] + list(range(8, 21))	# corresponds to Evolife colours
+		print(type(self.Parameter('EmptySpaces')))
+		AvailableColours = ['black', 'red', 'blue', 'brown', 'yellow', 7] + list(range(8, 21))	# corresponds to Evolife colours
 		self.Colours = AvailableColours[:self['NbColours']]	
 		self.addParameter('NumberOfGroups', self['NbColours'])	# may be used to create coloured groups
 
@@ -82,7 +84,10 @@ class Individual(EI.Individual):
 
 	def setColour(self, Colour):	
 		self.Colour = Colour
-		self.moves()	# gets a location
+		#self.moves()	# gets a location
+	
+	def setAgents(self):
+		self.moves()
 
 	def locate(self, NewPosition, Erase=True):
 		"""	place individual at a specific location on the ground 
@@ -106,16 +111,19 @@ class Individual(EI.Individual):
 	def satisfaction(self):
 		self.satisfied = True	# default
 		if self.location is None:	return False # may happen if there is no room left	
+		if self.Colour == 'black':	return True
 		Statistics = Land.InspectNeighbourhood(self.location, self.Scenario['NeighbourhoodRadius'])	# Dictionary of colours
 		# print(Statistics, end=' ')
 		Same = Statistics[self.Colour]
-		Different = sum([Statistics[C] for C in self.Scenario.Colours if C != self.Colour])	
+		Different = sum([Statistics[C] for C in self.Scenario.Colours if C != self.Colour or C == 'black'])	
+		if Same/(Same + Different) < self.Scenario.Parameter('Tolerance'):
+			self.satisfied = False
 		
 		# vvvvvvvv  To be changed vvvvvvvv
 		# compute satisfaction 
 		# by combining 'Same', 'Different' and self.Scenario.Parameter('Tolerance')
 		# (see the meaning of 'Tolerance' in Starter).
-		self.satisfied = False
+		
 		# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		return self.satisfied
 
@@ -167,8 +175,11 @@ class Population(EP.Population):
 		"""
 		EP.Population.__init__(self, Scenario, Observer)
 		self.Colours = self.Scenario.Colours
+		print("Creating empty spaces")
+		self.groups[0].setColour(self.Colours[0])  # group 0 is for empty spaces
+
 		print(self.Colours)
-		for Colour in self.Colours:
+		for Colour in self.Colours[1:]:
 			print(f"creating {Colour} agents")
 			# individuals are created with the colour given as ID of their group
 			self.groups[self.Colours.index(Colour)].setColour(Colour)
@@ -218,8 +229,14 @@ if __name__ == "__main__":
 	Observer = Observer(Gbl)	  # Observer contains statistics
 	Land = Landscape.Landscape(Gbl['LandSize'])	  # logical settlement grid
 	Land.setAdmissible(Gbl.Colours)
-	Pop = Population(Gbl, Observer)   
+	Pop = Population(Gbl, Observer)
+
+	for idx, indv in enumerate(Pop.groups[0].members):	# empty spaces
+		indv.locate(Gbl.Parameter('EmptySpaces', Default=[])[idx], Erase=False)
+
 	
+	
+
 	# Observer.recordInfo('Background', 'white')
 	Observer.recordInfo('FieldWallpaper', 'white')
 	Observer.recordInfo('DefaultViews',	[('Field', 400, 340), 'Legend'])	# Evolife should start with these windows open - these sizes are in pixels

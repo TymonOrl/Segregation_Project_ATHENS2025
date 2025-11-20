@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """ @brief  A population is a set of semi-permeable groups.
 		"""
 
@@ -45,8 +46,16 @@ class Population:
 		self.year = -1		   # to keep track of time
 		self.Observer = Observer # contains instantaneous data for statistics and display
 		self.best_score = 0
+
+		# New code empty spaces
+		list_of_inhabitable_locations = self.Scenario.Parameter('EmptySpaces', Default=[])
+		nb_empty_groups = len(list_of_inhabitable_locations)
 		nb_groups = self.Scenario.Parameter('NumberOfGroups', Default=1)
+
 		group_size = self.popSize // nb_groups
+		self.groups.append(self.createGroup(ID=0, Size=nb_empty_groups))
+		nb_groups -= 1
+		
 		self.groupMaxSize = 2 * group_size	# groups beyond that size split
 		while (nb_groups > 0):
 			self.groups.append(self.createGroup(ID=nb_groups, Size=group_size))
@@ -57,6 +66,7 @@ class Population:
 		"""	Calls class 'Group' 
 		"""
 		return Group(self.Scenario, ID=ID, Size=Size)
+	
 		
 	def selectIndividual(self):
 		"""	random selection of an individual in the population 

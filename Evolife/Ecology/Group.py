@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """ @brief	Groups are lists of Individuals.
 
 Reproduction, selection and behavioural games
