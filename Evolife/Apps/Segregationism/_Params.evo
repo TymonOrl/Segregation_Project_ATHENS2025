@@ -16,4 +16,4 @@ ScenarioName	Segregationism
 Target	Segregationism.py
 TimeLimit	300000
 Title	Evolife_Segregationism
-Tolerance	40
+Tolerance	30
