@@ -19,6 +19,7 @@
 
 
 import random
+import time
 		
 # class MySet(set):
 	# " set without duplicates "
@@ -105,6 +106,7 @@ class Landscape:
 		if check:	
 			if NewContent is not None:	# put only admissible content only at free location
 				if not self.Admissible(NewContent) or not Cell.free():
+					# print("Cannot place content", NewContent, "at",  self.Admissible(NewContent), Cell.free())
 					return False
 			else: # erase only when content is already there
 				if Cell.free():	return False
