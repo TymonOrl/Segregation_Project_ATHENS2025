@@ -124,12 +124,17 @@ class Individual(EI.Individual):
 		if self.location:
 			Land.Modify(self.location, self.Colour) # update color on Land
 			self.display()
-		else:
-			self.moves(free=True)
+		#else:
+			#self.moves(free=True)
 
 	def locate(self, NewPosition, Erase=True):
 		"""	place individual at a specific location on the ground 
 		"""
+		global Land, Pop
+
+		# Remove old address
+		if self.location in Pop.AgentAt:
+			del Pop.AgentAt[self.location]
 		if NewPosition is not None \
 			and not Land.Modify(NewPosition, self.Colour, check=True): 	# new position on Land
 			return False		 # NewPosition is not available  
@@ -137,6 +142,7 @@ class Individual(EI.Individual):
 			and not Land.Modify(self.location, None): 	# erasing previous position on Land
 			print('Error, agent %s badly placed' % self.ID)
 		self.location = NewPosition
+		Pop.AgentAt[self.location] = self   # store agent object
 		self.display()
 		return True
 
@@ -147,52 +153,122 @@ class Individual(EI.Individual):
 		return not self.satisfaction()
 
 	def satisfaction(self):
-		if self.Colour == 'black':	return True
-		self.satisfied = True	# default
-		if self.location is None:	return False # may happen if there is no room left	
-		Statistics = Land.InspectNeighbourhood(self.location, self.Scenario['NeighbourhoodRadius'])	# Dictionary of colours
-		# print(Statistics, end=' ')
-		#Same = Statistics[self.Colour]
-		#Different = sum([Statistics[C] for C in self.Scenario.Colours if C != self.Colour])	
-		# Sum all shades belonging to the same base colour
-		Same = sum(Statistics.get(col, 0) for col in CUSTOM_COLOURS 
-           			if col.startswith(self.BaseColour))
 
-		Different = sum(Statistics.get(col, 0) for col in CUSTOM_COLOURS
-                		if not col.startswith(self.BaseColour))
+		self.satisfied = True
+		if self.location is None:
+			return False
+
+		Statistics = Land.InspectNeighbourhood(self.location, self.Scenario['NeighbourhoodRadius'])
+
+		# Colour similarity ------------------------------------
+		same_colour = sum(
+			Statistics.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if col.startswith(self.BaseColour)
+		)
+
+		diff_colour = sum(
+			Statistics.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if not col.startswith(self.BaseColour)
+		)
+
+		colour_diff_pct = 100 * diff_colour / (same_colour + diff_colour) if (same_colour + diff_colour) else 0
 		
 		if self.Scenario['Correction'] == 0:
-			# compute satisfaction 
-			# by combining 'Same', 'Different' and self.Scenario.Parameter('Tolerance')
-			# (see the meaning of 'Tolerance' in Starter).
-			percentDiff = 100 * Different / (Same + Different)
-			self.satisfied = percentDiff <= self.Scenario['Tolerance']
+
+			# Budget similarity -------------------------------------
+			neigh_budgets = []
+			for pos in Land.neighbours(self.location, self.Scenario['NeighbourhoodRadius']):
+				agent = Pop.AgentAt.get(pos)
+				if agent:
+					neigh_budgets.append(agent.Budget)
+
+			if neigh_budgets:
+				avg_budget = sum(neigh_budgets) / len(neigh_budgets)
+				budget_gap = abs(avg_budget - self.Budget)
+			else:
+				budget_gap = 5   # penalize isolated positions
+
+			# Weighted score 
+			score = (
+				0.9 * colour_diff_pct +
+				0.1 * (budget_gap * 50)
+			)
 		else:
-			if (Same + Different) and \
-					(100 * Different) / (Same + Different) > self.Scenario['Tolerance']:	
-				self.satisfied = False		
+			score = colour_diff_pct
+		# Final check
+		self.satisfied = score <= self.Scenario['Tolerance']
 		return self.satisfied
 
-	def moves(self, free=False, Position=None): #First move is free of charge !
-		# print 'moving', self
-		global Land
-		if Position:
-			return self.locate(Position)
+	def satisfaction_at(self, pos):
+		"""Compute satisfaction as if agent were located at pos."""
+		if pos is None:
+			return 9999
+		Stats = Land.InspectNeighbourhood(pos, self.Scenario['NeighbourhoodRadius'])
+
+		# Colour similarity
+		same = sum(
+			Stats.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if col.startswith(self.BaseColour)
+		)
+		diff = sum(
+			Stats.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if not col.startswith(self.BaseColour)
+		)
+		colour_pct = 100 * diff / (same + diff) if (same + diff) else 0
+
+		# Budget similarity
+		neigh_budgets = []
+		for npos in Land.neighbours(pos, self.Scenario['NeighbourhoodRadius']):
+			agent = Pop.AgentAt.get(npos)
+			if agent:
+				neigh_budgets.append(agent.Budget)
+
+		if neigh_budgets:
+			avg_budget = sum(neigh_budgets) / len(neigh_budgets)
+			budget_gap = abs(avg_budget - self.Budget)
 		else:
-			# pick a random location and go there 
-			# Agents with any budgets can move to any places at initialization 
-			for ii in range(20): # should work at first attempt most of the time (people gets tired at finding houses too ;)
-				Landing = Land.randomPosition(Content=None, check=True)	# selects an empty cell
-				if Landing:
-					housePrice = Land.getHousePrice(Landing)   # get the house price of the selected cell
-					if self.Budget :
-						if free or (self.Budget >= housePrice):   # with enough budget, agents can move
-							if self.locate(Landing):
-								return True
-				
-				elif ii == 0:	Land.statistics()   # need to update list of available positions
-			print("Unable to move to", Position)
+			budget_gap = 5
+
+		score = 0.9 * colour_pct + 0.1 * (budget_gap * 50)
+		return score
+
+	def moves(self, Position=None):
+			global Land, Pop
+
+			if Position:
+				return self.locate(Position)
+
+			if self.location is None:
+				current_score = 9999
+			else:
+				current_score = self.satisfaction_at(self.location)
+
+			for ii in range(5):
+				pos = Land.randomPosition(Content=None, check=True)
+
+				if not pos:
+					if ii == 0:
+						Land.statistics()
+					continue
+
+				# affordability check
+				if self.Budget < Land.getHousePrice(pos):
+					continue
+
+				# compute satisfaction if we moved there
+				new_score = self.satisfaction_at(pos)
+
+				# move only if improvement
+				if new_score < current_score:
+					return self.locate(pos)
+
+			# no improvement found → stay
 			return False
+
 
 	def __str__(self):
 		return "(%s,%s) --> " % (self.ID, self.Colour) + str(self.location)
@@ -264,6 +340,7 @@ class Population(EP.Population):
 		print(f"population size: {self.popSize}")
 		self.Moves = 0  # counts the number of times agents have moved
 		self.CallsSinceLastMove = 0  # counts the number of times agents were proposed to move since last actual move
+		self.AgentAt = {}   # maps (x,y) → Individual
 
 	def createGroup(self, ID=0, Size=0):
 		return Group(self.Scenario, ID=ID, Size=Size)

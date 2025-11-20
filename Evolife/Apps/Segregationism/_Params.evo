@@ -8,7 +8,7 @@ Icon	settler.jpg
 LandSize	51
 NbColours	2
 NeighbourhoodRadius	1
-PopulationSize	600
+PopulationSize	1300
 ResultDir	./___Results
 Run	1
 RunConfigFile	_Params.evo
@@ -17,4 +17,4 @@ ScenarioName	Segregationism
 Target	Segregationism.py
 TimeLimit	300000
 Title	Evolife_Segregationism
-Tolerance	40
+Tolerance	30

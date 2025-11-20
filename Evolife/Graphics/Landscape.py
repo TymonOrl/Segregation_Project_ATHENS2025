@@ -81,7 +81,7 @@ class Landscape:
 		self.Statistics = {}	# will contain lists of cells for each content type
 
 		# Simple initialization of house price in the whole area
-		group_sizes = [self.Width//3, self.Width//3, self.Width - 2 * self.Width//3]
+		#group_sizes = [self.Width//3, self.Width//3, self.Width - 2 * self.Width//3]
 
 		# self.housePrice = (
 		# 	[[1]*self.Width for _ in range(group_sizes[0])] +
