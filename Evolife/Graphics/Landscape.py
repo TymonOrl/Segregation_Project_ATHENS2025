@@ -92,7 +92,7 @@ class Landscape:
 
 	def getHousePrice(self, Pos):
 		(x, y) = Pos
-		return self.housePrice[y][x]
+		return self.housePrice[x][y]
 
 	def setAdmissible(self, ContentType):	
 		self.ContentType = ContentType
