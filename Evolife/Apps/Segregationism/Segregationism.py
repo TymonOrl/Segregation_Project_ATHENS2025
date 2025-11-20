@@ -389,7 +389,7 @@ if __name__ == "__main__":
 	
 	# Observer.recordInfo('Background', 'white')
 	Observer.recordInfo('FieldWallpaper', Gbl['CityFile']) # Add city for the background
-	Observer.recordInfo('DefaultViews',	['Field', 'Legend'])	# Evolife should start with these windows open - these sizes are in pixels
+	Observer.recordInfo('DefaultViews',	[('Field', 400, 400), 'Legend'])	# Evolife should start with these windows open - these sizes are in pixels
 
 	
 	# declaration of curves
