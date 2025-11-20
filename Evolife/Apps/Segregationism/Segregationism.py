@@ -144,6 +144,7 @@ class Individual(EI.Individual):
 		return not self.satisfaction()
 
 	def satisfaction(self):
+
 		self.satisfied = True
 		if self.location is None:
 			return False
@@ -191,33 +192,73 @@ class Individual(EI.Individual):
 		self.satisfied = score <= self.Scenario['Tolerance']
 		return self.satisfied
 
+	def satisfaction_at(self, pos):
+		"""Compute satisfaction as if agent were located at pos."""
+		if pos is None:
+			return 9999
+		Stats = Land.InspectNeighbourhood(pos, self.Scenario['NeighbourhoodRadius'])
+
+		# Colour similarity
+		same = sum(
+			Stats.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if col.startswith(self.BaseColour)
+		)
+		diff = sum(
+			Stats.get(col, 0)
+			for col in CUSTOM_COLOURS
+			if not col.startswith(self.BaseColour)
+		)
+		colour_pct = 100 * diff / (same + diff) if (same + diff) else 0
+
+		# Budget similarity
+		neigh_budgets = []
+		for npos in Land.neighbours(pos, self.Scenario['NeighbourhoodRadius']):
+			agent = Pop.AgentAt.get(npos)
+			if agent:
+				neigh_budgets.append(agent.Budget)
+
+		if neigh_budgets:
+			avg_budget = sum(neigh_budgets) / len(neigh_budgets)
+			budget_gap = abs(avg_budget - self.Budget)
+		else:
+			budget_gap = 5
+
+		score = 0.9 * colour_pct + 0.1 * (budget_gap * 50)
+		return score
+
 	def moves(self, Position=None):
-		global Land
+			global Land, Pop
 
-		if Position:
-			return self.locate(Position)
+			if Position:
+				return self.locate(Position)
 
-		# Try 5 random empty locations
-		for ii in range(5):
-			pos = Land.randomPosition(Content=None, check=True)
+			if self.location is None:
+				current_score = 9999
+			else:
+				current_score = self.satisfaction_at(self.location)
 
-			if not pos:
-				# refresh list of empty cells on first failure
-				if ii == 0:
-					Land.statistics()
-				continue
+			for ii in range(5):
+				pos = Land.randomPosition(Content=None, check=True)
 
-			housePrice = Land.getHousePrice(pos)
+				if not pos:
+					if ii == 0:
+						Land.statistics()
+					continue
 
-			# If the place is affordable, move immediately
-			if self.Budget >= housePrice:
-				if self.locate(pos):
-					return True
-				else:
-					continue  # theoretically shouldn't happen
+				# affordability check
+				if self.Budget < Land.getHousePrice(pos):
+					continue
 
-		# No affordable positions found
-		return False
+				# compute satisfaction if we moved there
+				new_score = self.satisfaction_at(pos)
+
+				# move only if improvement
+				if new_score < current_score:
+					return self.locate(pos)
+
+			# no improvement found → stay
+			return False
 
 	def __str__(self):
 		return "(%s,%s) --> " % (self.ID, self.Colour) + str(self.location)
