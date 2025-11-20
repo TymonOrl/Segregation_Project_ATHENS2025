@@ -54,6 +54,12 @@ import random
 
 Land = None	# to be instantiated
 Observer = None	# to be instantiated
+choices = [1, 2, 3]    # 1:low budget, 2: medium, 3:high
+weights = [0.3, 0.6, 0.1]   # probabilities for budgets 1, 2, 3
+CUSTOM_COLOURS = [
+			'red10', 'red7', 'red4',
+			'blue10', 'blue7', 'blue4'
+		]
 
 class Observer(EO.Observer):
 	def Field_grid(self):
@@ -63,12 +69,21 @@ class Observer(EO.Observer):
 class Scenario(EPar.Parameters):
 	def __init__(self):
 		# Parameter values
-		EPar.Parameters.__init__(self, CfgFile='_Params.evo')	# loads parameters from configuration file
+		
+		import os
+		base_path = os.path.dirname(__file__)
+		params_path = os.path.join(base_path, '_Params.evo')
+
+		EPar.Parameters.__init__(self, CfgFile=params_path)
+		
+		#EPar.Parameters.__init__(self, CfgFile='_Params.evo')	# loads parameters from configuration file
 		#############################
 		# Global variables		    #
 		#############################
+
 		AvailableColours = ['red', 'blue', 'brown', 'yellow', 7] + list(range(8, 21))	# corresponds to Evolife colours
 		self.Colours = AvailableColours[:self['NbColours']]	
+		#self.Budgets = [1, 2, 3]   
 		self.addParameter('NumberOfGroups', self['NbColours'])	# may be used to create coloured groups
 
 	def new_agent(self, Indiv, parents):	pass
@@ -80,10 +95,29 @@ class Individual(EI.Individual):
 		EI.Individual.__init__(self, Scenario, ID=ID, Newborn=Newborn)
 		self.satisfied = False	# if false, the individual will move
 		self.location = location # initialize the location
+		self.BaseColour = None
+		self.Budget = None
 		self.setColour('black') # initialize with border
 
-	def setColour(self, Colour):	
-		self.Colour = Colour
+	def setColourAndBudget(self, Colour, Budget):	
+		self.BaseColour = Colour
+		if Colour == 'red':
+			if Budget == 1:
+				self.Colour = 'red10'
+			elif Budget == 2:
+				self.Colour = 'red7'
+			else:
+				self.Colour = 'red4'
+		elif Colour == 'blue':
+			if Budget == 1:
+				self.Colour = 'blue10'
+			elif Budget == 2:
+				self.Colour = 'blue7'
+			else:
+				self.Colour = 'blue4'
+		else:
+			self.Colour = Colour
+		self.Budget = Budget
 		if self.location:
 			Land.Modify(self.location, self.Colour) # update color on Land
 			self.display()
@@ -115,17 +149,25 @@ class Individual(EI.Individual):
 		if self.location is None:	return False # may happen if there is no room left	
 		Statistics = Land.InspectNeighbourhood(self.location, self.Scenario['NeighbourhoodRadius'])	# Dictionary of colours
 		# print(Statistics, end=' ')
-		Same = Statistics[self.Colour]
-		Different = sum([Statistics[C] for C in self.Scenario.Colours if (C != self.Colour and C != 'black')])	# Ignore borders
+		#Same = Statistics[self.Colour]
+		#Different = sum([Statistics[C] for C in self.Scenario.Colours if C != self.Colour])	
+		# Sum all shades belonging to the same base colour
+		Same = sum(Statistics.get(col, 0) for col in CUSTOM_COLOURS 
+           			if col.startswith(self.BaseColour))
+
+		Different = sum(Statistics.get(col, 0) for col in CUSTOM_COLOURS
+                		if not col.startswith(self.BaseColour))
 		
-		# vvvvvvvv  To be changed vvvvvvvv
-		# compute satisfaction 
-		# by combining 'Same', 'Different' and self.Scenario.Parameter('Tolerance')
-		# (see the meaning of 'Tolerance' in Starter).
-		if (Same + Different):
-			if 100 * Different / (Same + Different) > self.Scenario.Parameter('Tolerance'):
-				self.satisfied = False
-		# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		if self.Scenario['Correction'] == 0:
+			# compute satisfaction 
+			# by combining 'Same', 'Different' and self.Scenario.Parameter('Tolerance')
+			# (see the meaning of 'Tolerance' in Starter).
+			percentDiff = 100 * Different / (Same + Different)
+			self.satisfied = percentDiff <= self.Scenario['Tolerance']
+		else:
+			if (Same + Different) and \
+					(100 * Different) / (Same + Different) > self.Scenario['Tolerance']:	
+				self.satisfied = False		
 		return self.satisfied
 
 	def moves(self, Position=None):
@@ -134,11 +176,17 @@ class Individual(EI.Individual):
 		if Position:
 			return self.locate(Position)
 		else:
-			# pick a random location and go there (TO BE MODIFIED)
-			for ii in range(10): # should work at first attempt most of the time
+			# pick a random location and go there 
+			# Agents with any budgets can move to any places at initialization 
+			for ii in range(5): # should work at first attempt most of the time (people gets tired at finding houses too ;)
 				Landing = Land.randomPosition(Content=None, check=True)	# selects an empty cell
-				if Landing and self.locate(Landing):
-					return True
+				if Landing and self.locate(Landing):  
+					housePrice = Land.getHousePrice(Landing)   # get the house price of the selected cell
+					if self.Budget >= housePrice:   # with enough budget, agents can move
+						return True
+					else:
+						return False    # beyond budget, stay
+					
 				elif ii == 0:	Land.statistics()   # need to update list of available positions
 			print("Unable to move to", Position)
 			return False
@@ -155,13 +203,16 @@ class Group(EG.Group):
 		EG.Group.__init__(self, Scenario, ID, Size)
 		self.Colour = None
 		
-	def setColour(self, Colour):
+	def setColourAndBudget(self, Colour):
 		self.Colour = Colour
-		for member in self.members:	member.setColour(Colour)	# gives colour to all members
+		#self.Budget = random.choice([1, 2, 3])   # randomly assign budgets to agents in a group
+		for member in self.members:	
+			Budget = random.choices(choices, weights=weights, k=1)[0]
+			member.setColourAndBudget(Colour, Budget)	# gives colour and budget to all members
 		
-	def createIndividual(self, ID=None, Newborn=True, location=None):
+	def createIndividual(self, ID=None, Newborn=True):
 		# calling local class 'Individual'
-		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn, location=location)
+		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn)
 		# Individual creation may fail if there is no room left
 		# if Indiv.location == None:	return None
 		return Indiv
@@ -196,7 +247,8 @@ class Population(EP.Population):
 		for Colour in self.Colours[:-1]:
 			print(f"creating {Colour} agents")
 			# individuals are created with the colour given as ID of their group
-			self.groups[self.Colours.index(Colour)].setColour(Colour)
+			self.groups[self.Colours.index(Colour)].setColourAndBudget(Colour)
+		print(self.Colours)
 		print(f"population size: {self.popSize}")
 		self.Moves = 0  # counts the number of times agents have moved
 		self.CallsSinceLastMove = 0  # counts the number of times agents were proposed to move since last actual move

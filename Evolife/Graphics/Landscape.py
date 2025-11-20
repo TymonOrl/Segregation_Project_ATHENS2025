@@ -19,7 +19,6 @@
 
 
 import random
-		
 # class MySet(set):
 	# " set without duplicates "
 	# def append(self, Item):	self.add(Item)
@@ -80,6 +79,20 @@ class Landscape:
 		self.Toric = Toric
 		self.ActiveCells = set()   # list of Positions that have been modified
 		self.Statistics = {}	# will contain lists of cells for each content type
+
+		# Simple initialization of house price in the whole area
+		group_sizes = [self.Width//3, self.Width//3, self.Width - 2 * self.Width//3]
+
+		# Pure Python version of housePrice:
+		self.housePrice = (
+			[[1]*self.Width for _ in range(group_sizes[0])] +
+			[[2]*self.Width for _ in range(group_sizes[1])] +
+			[[3]*self.Width for _ in range(group_sizes[2])]
+		)
+
+	def getHousePrice(self, Pos):
+		(x, y) = Pos
+		return self.housePrice[x][y]
 
 	def setAdmissible(self, ContentType):	
 		self.ContentType = ContentType
