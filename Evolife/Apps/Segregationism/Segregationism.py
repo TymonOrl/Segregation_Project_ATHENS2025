@@ -56,6 +56,8 @@ Land = None	# to be instantiated
 Observer = None	# to be instantiated
 choices = [1, 2, 3]    # 1:low budget, 2: medium, 3:high
 weights = [0.3, 0.6, 0.1]   # probabilities for budgets 1, 2, 3
+price_choices = [1, 2, 3]    # 1:low price, 2: medium, 3:high
+price_weights = [0.2, 0.6, 0.2]   # probabilities for prices 1, 2, 3
 CUSTOM_COLOURS = [
 			'red10', 'red7', 'red4',
 			'blue10', 'blue7', 'blue4'
@@ -97,7 +99,8 @@ class Individual(EI.Individual):
 		self.location = location # initialize the location
 		self.BaseColour = None
 		self.Budget = None
-		self.setColour('black') # initialize with border
+		self.setColourAndBudget('black', None)
+
 
 	def setColourAndBudget(self, Colour, Budget):	
 		self.BaseColour = Colour
@@ -122,7 +125,7 @@ class Individual(EI.Individual):
 			Land.Modify(self.location, self.Colour) # update color on Land
 			self.display()
 		else:
-			self.moves()
+			self.moves(free=True)
 
 	def locate(self, NewPosition, Erase=True):
 		"""	place individual at a specific location on the ground 
@@ -170,7 +173,7 @@ class Individual(EI.Individual):
 				self.satisfied = False		
 		return self.satisfied
 
-	def moves(self, Position=None):
+	def moves(self, free=False, Position=None): #First move is free of charge !
 		# print 'moving', self
 		global Land
 		if Position:
@@ -178,15 +181,15 @@ class Individual(EI.Individual):
 		else:
 			# pick a random location and go there 
 			# Agents with any budgets can move to any places at initialization 
-			for ii in range(5): # should work at first attempt most of the time (people gets tired at finding houses too ;)
+			for ii in range(20): # should work at first attempt most of the time (people gets tired at finding houses too ;)
 				Landing = Land.randomPosition(Content=None, check=True)	# selects an empty cell
-				if Landing and self.locate(Landing):  
+				if Landing:
 					housePrice = Land.getHousePrice(Landing)   # get the house price of the selected cell
-					if self.Budget >= housePrice:   # with enough budget, agents can move
-						return True
-					else:
-						return False    # beyond budget, stay
-					
+					if self.Budget :
+						if free or (self.Budget >= housePrice):   # with enough budget, agents can move
+							if self.locate(Landing):
+								return True
+				
 				elif ii == 0:	Land.statistics()   # need to update list of available positions
 			print("Unable to move to", Position)
 			return False
@@ -210,9 +213,9 @@ class Group(EG.Group):
 			Budget = random.choices(choices, weights=weights, k=1)[0]
 			member.setColourAndBudget(Colour, Budget)	# gives colour and budget to all members
 		
-	def createIndividual(self, ID=None, Newborn=True):
+	def createIndividual(self, ID=None, Newborn=True, location=None):
 		# calling local class 'Individual'
-		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn)
+		Indiv = Individual(self.Scenario, ID=self.free_ID(), Newborn=Newborn, location=location)
 		# Individual creation may fail if there is no room left
 		# if Indiv.location == None:	return None
 		return Indiv
@@ -231,18 +234,27 @@ class Population(EP.Population):
 		print(self.Colours)
 
 		# Populate background with agents that are always happy
+		border_group = self.createGroup(ID=42, Size=0)
+		self.groups.append(border_group)
 		img = Image.open(Gbl['CityFile']).convert("RGB")
 		pixels = img.load()
 		width, height = img.size
 		created_count = 0
 		for j in range(width):
 			for i in range(height):
-				if pixels[i, j][0] == 0: #pixel is black
-					# All individuals are created in group 0
-					# They are initialized with the first color by default in Individual.__init__
-					if self.groups[1].createIndividual(location = (i, width - j - 1)):
+				if sum(pixels[i, j]) == 0: #pixel is black
+					# All individuals are created in a dedicated group
+					if border_group.createIndividual(location = (i, width - j - 1)):
 						created_count += 1
+				# Set the price index
+				if pixels[i, j][2] == 255 : # cyan
+					Land.housePrice[i][width - j - 1] = 1
+				if pixels[i, j][0] == 255 : # yellow
+					Land.housePrice[i][width - j - 1] = 2
+				if pixels[i, j][1] == 255: # green
+					Land.housePrice[i][width - j - 1] = 3
 		print(f"created {created_count} agents on black pixels.")
+		border_group.setColourAndBudget('black')
 
 		for Colour in self.Colours[:-1]:
 			print(f"creating {Colour} agents")
@@ -256,7 +268,7 @@ class Population(EP.Population):
 	def createGroup(self, ID=0, Size=0):
 		return Group(self.Scenario, ID=ID, Size=Size)
 
-	def satisfaction(self):	return [(gr.Colour, gr.satisfaction()) for gr in self.groups]
+	def satisfaction(self):	return [(gr.Colour, gr.satisfaction()) for gr in self.groups if gr.Colour is not None]
 	
 	def One_Decision(self):
 		""" This function is repeatedly called by the simulation thread.
@@ -292,9 +304,10 @@ if __name__ == "__main__":
 	# Global objects			#
 	#############################
 	Gbl = Scenario()
-	Observer = Observer(Gbl)	  # Observer contains statistics
+	Observer = Observer(Gbl)	  # Observer acontains statistics
 	Land = Landscape.Landscape(Gbl['LandSize'])	  # logical settlement grid
-	Land.setAdmissible(Gbl.Colours)
+	Land.housePrice = [random.choices(price_choices, weights=price_weights, k=Land.Width) for _ in range(Land.Height)]
+	Land.setAdmissible(CUSTOM_COLOURS + ['black'])
 	Pop = Population(Gbl, Observer)   
 	
 	# Observer.recordInfo('Background', 'white')

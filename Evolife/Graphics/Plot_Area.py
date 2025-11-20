@@ -186,7 +186,7 @@ class Draw_Area(Image_Area, Curves):
 		"""
 		Image_Area.__init__(self, image=image, legend=legend, width=width, height=height, 
 					EventInterpreter=EventInterpreter, zoom=zoom)
-		self.set_margins(*ZoomL(zoom, 6, 6, 6, 6))
+		self.set_margins(*ZoomL(zoom, 0, 0, 0, 0))
 		self.OrigineX = 0
 		self.OrigineY = 0
 		if True:
