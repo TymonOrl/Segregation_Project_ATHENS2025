@@ -99,6 +99,7 @@ class Individual(EI.Individual):
 		self.location = location # initialize the location
 		self.BaseColour = None
 		self.Budget = None
+		self.free = Gbl['FirstHouseFree']
 		self.setColourAndBudget('black', None)
 
 
@@ -255,8 +256,8 @@ class Individual(EI.Individual):
 						Land.statistics()
 					continue
 
-				# affordability check
-				if self.Budget < Land.getHousePrice(pos):
+				# affordability check (first house is free !)
+				if not self.free and (self.Budget < Land.getHousePrice(pos)):
 					continue
 
 				# compute satisfaction if we moved there
@@ -264,6 +265,7 @@ class Individual(EI.Individual):
 
 				# move only if improvement
 				if new_score < current_score:
+					self.free = False
 					return self.locate(pos)
 
 			# no improvement found → stay

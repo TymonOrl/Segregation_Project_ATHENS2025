@@ -20,6 +20,11 @@
 			<Description><info><![CDATA[File containing the city info]]></info></Description>
 			<Value>"mask_priced50px.png"</Value>
 		</Parameter>
+		<Parameter>
+			<Name>FirstHouseFree</Name>
+			<Description><info><![CDATA[Is the first house free ?]]></info></Description>
+			<Value>True</Value>
+		</Parameter>
 	</Parameter>
 	<Parameter>
 		<Name>Interactions</Name>
