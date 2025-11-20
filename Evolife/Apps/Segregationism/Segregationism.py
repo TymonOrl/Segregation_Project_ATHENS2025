@@ -133,7 +133,7 @@ class Individual(EI.Individual):
 			and not Land.Modify(self.location, None): 	# erasing previous position on Land
 			print('Error, agent %s badly placed' % self.ID)
 		self.location = NewPosition
-		Pop.AgentAt[self.location] = self   # <-- store agent object
+		Pop.AgentAt[self.location] = self   # store agent object
 		self.display()
 		return True
 
@@ -180,7 +180,7 @@ class Individual(EI.Individual):
 			else:
 				budget_gap = 5   # penalize isolated positions
 
-			# Weighted score (tune these freely)
+			# Weighted score 
 			score = (
 				0.9 * colour_diff_pct +
 				0.1 * (budget_gap * 50)
@@ -209,7 +209,7 @@ class Individual(EI.Individual):
 
 			housePrice = Land.getHousePrice(pos)
 
-			# If the place is affordable → move immediately
+			# If the place is affordable, move immediately
 			if self.Budget >= housePrice:
 				if self.locate(pos):
 					return True
